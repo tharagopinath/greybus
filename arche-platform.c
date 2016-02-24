@@ -133,6 +133,9 @@ static int arche_platform_coldboot_seq(struct arche_platform_drvdata *arche_pdat
 {
 	int ret;
 
+	if (arche_pdata->state == ARCHE_PLATFORM_STATE_ACTIVE)
+		return 0;
+
 	dev_info(arche_pdata->dev, "Booting from cold boot state\n");
 
 	svc_reset_onoff(arche_pdata->svc_reset_gpio,
@@ -159,6 +162,9 @@ static int arche_platform_coldboot_seq(struct arche_platform_drvdata *arche_pdat
 
 static void arche_platform_fw_flashing_seq(struct arche_platform_drvdata *arche_pdata)
 {
+	if (arche_pdata->state == ARCHE_PLATFORM_STATE_FW_FLASHING)
+		return;
+
 	dev_info(arche_pdata->dev, "Switching to FW flashing state\n");
 
 	svc_reset_onoff(arche_pdata->svc_reset_gpio,
@@ -176,11 +182,18 @@ static void arche_platform_fw_flashing_seq(struct arche_platform_drvdata *arche_
 
 static void arche_platform_poweroff_seq(struct arche_platform_drvdata *arche_pdata)
 {
-	/* Send disconnect/detach event to SVC */
-	gpio_set_value(arche_pdata->wake_detect_gpio, 0);
-	usleep_range(100, 200);
+	if (arche_pdata->state == ARCHE_PLATFORM_STATE_OFF)
+		return;
 
-	clk_disable_unprepare(arche_pdata->svc_ref_clk);
+	/* If in fw_flashing mode, then no need to repeate things again */
+	if (arche_pdata->state != ARCHE_PLATFORM_STATE_FW_FLASHING) {
+		/* Send disconnect/detach event to SVC */
+		gpio_set_value(arche_pdata->wake_detect_gpio, 0);
+		usleep_range(100, 200);
+
+		clk_disable_unprepare(arche_pdata->svc_ref_clk);
+	}
+
 	/* As part of exit, put APB back in reset state */
 	svc_reset_onoff(arche_pdata->svc_reset_gpio,
 			arche_pdata->is_reset_act_hi);
