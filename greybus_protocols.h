@@ -807,7 +807,7 @@ struct gb_spi_transfer_response {
 #define GB_SVC_TYPE_KEY_EVENT			0x12
 #define GB_SVC_TYPE_PING			0x13
 #define GB_SVC_TYPE_INTF_PWR_STATE_SET		0x18
-
+#define GB_SVC_TYPE_INTF_REFCLK_STATE_SET	0x19
 /*
  * SVC version request/response has the same payload as
  * gb_protocol_version_request/response.
@@ -990,6 +990,20 @@ struct gb_svc_intf_pwr_state_set_request {
 /*SVC protocol interface power state set response */
 struct gb_svc_intf_pwr_state_set_response {
 	__le16  result;
+} __packed;
+
+#define GB_SVC_INTF_REFCLK_DISABLE	0x00
+#define GB_SVC_INTF_REFCLK_ENABLE	0x01
+
+/* SVC protocol interface reference clock state set request */
+struct gb_svc_intf_refclk_state_set_request {
+	__u8 intf_id;
+	__u8 enable;
+} __packed;
+
+/* SVC protocol interface reference clock state set response */
+struct gb_svc_intf_refclk_state_set_response {
+	__le16 result;
 } __packed;
 
 /* RAW */

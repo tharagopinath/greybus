@@ -415,6 +415,26 @@ int gb_svc_intf_power_state_set(struct gb_svc *svc, u8 intf_id, u8 enable)
 	return le16_to_cpu(response.result);
 }
 
+int gb_svc_intf_refclk_state_set(struct gb_svc *svc, u8 intf_id, u8 enable)
+{
+	struct gb_svc_intf_refclk_state_set_request request;
+	struct gb_svc_intf_refclk_state_set_response response;
+	int ret;
+
+	request.intf_id = intf_id;
+	request.enable = enable;
+
+	ret = gb_operation_sync(svc->connection,
+				GB_SVC_TYPE_INTF_REFCLK_STATE_SET,
+				&request, sizeof(request),
+				&response, sizeof(response));
+
+	if (ret < 0)
+		return ret;
+
+	return le16_to_cpu(response.result);
+}
+
 static int gb_svc_version_request(struct gb_operation *op)
 {
 	struct gb_connection *connection = op->connection;

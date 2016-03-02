@@ -73,4 +73,5 @@ int gb_svc_protocol_init(void);
 void gb_svc_protocol_exit(void);
 
 int gb_svc_intf_power_state_set(struct gb_svc *svc, u8 intf_id, u8 enable);
+int gb_svc_intf_refclk_state_set(struct gb_svc *svc, u8 intf_id, u8 enable);
 #endif /* __SVC_H */
