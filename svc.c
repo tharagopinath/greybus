@@ -403,6 +403,27 @@ int gb_svc_ping(struct gb_svc *svc)
 }
 EXPORT_SYMBOL_GPL(gb_svc_ping);
 
+int gb_svc_intf_power_enable(struct gb_svc *svc, u8 intf_id, u8 enable)
+{
+
+	struct gb_svc_intf_pwren_request request;
+	struct gb_svc_intf_pwren_response response;
+	int ret;
+
+	request.intf_id = intf_id;
+	request.enable = enable;
+
+	ret = gb_operation_sync(svc->connection, GB_SVC_TYPE_INTF_PWREN,
+				&request, sizeof(request),
+				&response, sizeof(response));
+
+	if (ret < 0)
+		return ret;
+
+	return le16_to_cpu(response.result_code);
+}
+EXPORT_SYMBOL_GPL(gb_svc_intf_power_enable);
+
 static int gb_svc_version_request(struct gb_operation *op)
 {
 	struct gb_connection *connection = op->connection;

@@ -68,4 +68,5 @@ int gb_svc_watchdog_disable(struct gb_svc *svc);
 int gb_svc_protocol_init(void);
 void gb_svc_protocol_exit(void);
 
+int gb_svc_intf_power_enable(struct gb_svc *svc, u8 intf_id, u8 enable);
 #endif /* __SVC_H */
