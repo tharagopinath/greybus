@@ -10,6 +10,8 @@
 #ifndef __CONTROL_H
 #define __CONTROL_H
 
+struct gb_bundle;
+
 struct gb_control {
 	struct gb_connection	*connection;
 
@@ -37,5 +39,6 @@ int gb_control_timesync_disable(struct gb_control *control);
 int gb_control_timesync_authoritative(struct gb_control *control,
 				      u64 *frame_time, u8 count);
 int gb_control_interface_power_state_set(struct gb_interface *intf, u8 pwr_state);
+int gb_control_bundle_power_state_set(struct gb_bundle *bundle, u8 pwr_state);
 
 #endif /* __CONTROL_H */
