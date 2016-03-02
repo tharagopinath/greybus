@@ -241,3 +241,22 @@ void gb_control_destroy(struct gb_control *control)
 	gb_connection_destroy(control->connection);
 	kfree(control);
 }
+
+int gb_control_interface_set_power_state(struct gb_interface *intf, u8 pwr_state)
+{
+
+	struct gb_connection *connection = intf->control->connection;
+	struct gb_control_intf_pwr_state_set_request request;
+	struct gb_control_intf_pwr_state_set_response response;
+	int ret;
+
+	request.pwr_state = pwr_state;
+	ret = gb_operation_sync(connection, GB_CONTROL_TYPE_INTF_PWR_STATE_SET,
+				&request, sizeof(request),
+				&response, sizeof(response));
+
+	if (ret)
+		return ret;
+
+	return le16_to_cpu(response.result_code);
+}

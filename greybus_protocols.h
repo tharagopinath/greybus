@@ -124,6 +124,7 @@ struct gb_protocol_version_response {
 #define GB_CONTROL_TYPE_DISCONNECTED		0x06
 #define GB_CONTROL_TYPE_INTERFACE_VERSION	0x0a
 #define GB_CONTROL_TYPE_BUNDLE_VERSION		0x0b
+#define GB_CONTROL_TYPE_INTF_PWR_STATE_SET	0x0c
 
 struct gb_control_version_request {
 	__u8	major;
@@ -170,6 +171,17 @@ struct gb_control_interface_version_response {
 	__le16			minor;
 } __packed;
 
+#define INTERFACE_PWR_OFF	0x00
+#define INTERFACE_PWR_SUSPEND	0x01
+#define INTERFACE_PWR_ON	0xFF
+
+struct gb_control_intf_pwr_state_set_request {
+	__u8	pwr_state;
+} __packed;
+
+struct gb_control_intf_pwr_state_set_response {
+	__le16	result_code;
+} __packed;
 
 /* APBridge protocol */
 

@@ -31,5 +31,6 @@ int gb_control_get_manifest_size_operation(struct gb_interface *intf);
 int gb_control_get_manifest_operation(struct gb_interface *intf, void *manifest,
 				      size_t size);
 int gb_control_get_interface_version_operation(struct gb_interface *intf);
+int gb_control_interface_set_power_state(struct gb_interface *intf, u8 pwr_state);
 
 #endif /* __CONTROL_H */
