@@ -125,6 +125,7 @@ struct gb_protocol_version_response {
 #define GB_CONTROL_TYPE_INTERFACE_VERSION	0x0a
 #define GB_CONTROL_TYPE_BUNDLE_VERSION		0x0b
 #define GB_CONTROL_TYPE_INTF_PWR_STATE_SET	0x0c
+#define GB_CONTROL_TYPE_BUNDLE_PWR_STATE_SET	0x0d
 
 struct gb_control_version_request {
 	__u8	major;
@@ -180,6 +181,19 @@ struct gb_control_intf_pwr_state_set_request {
 } __packed;
 
 struct gb_control_intf_pwr_state_set_response {
+	__le16	result_code;
+} __packed;
+
+#define BUNDLE_PWR_OFF		0x00
+#define BUNDLE_PWR_SUSPEND	0x01
+#define BUNDLE_PWR_ON		0xFF
+
+struct gb_control_bundle_pwr_state_set_request {
+	__u8	id;
+	__u8	pwr_state;
+} __packed;
+
+struct gb_control_bundle_pwr_state_set_response {
 	__le16	result_code;
 } __packed;
 

@@ -10,6 +10,8 @@
 #ifndef __CONTROL_H
 #define __CONTROL_H
 
+struct gb_bundle;
+
 struct gb_control {
 	struct gb_connection	*connection;
 
@@ -32,5 +34,6 @@ int gb_control_get_manifest_operation(struct gb_interface *intf, void *manifest,
 				      size_t size);
 int gb_control_get_interface_version_operation(struct gb_interface *intf);
 int gb_control_interface_set_power_state(struct gb_interface *intf, u8 pwr_state);
+int gb_control_bundle_set_power_state(struct gb_bundle *bundle, u8 pwr_state);
 
 #endif /* __CONTROL_H */
