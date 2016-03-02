@@ -802,6 +802,7 @@ struct gb_spi_transfer_response {
 #define GB_SVC_TYPE_KEY_EVENT		0x12
 #define GB_SVC_TYPE_PING		0x13
 #define GB_SVC_TYPE_INTF_PWREN		0x14
+#define GB_SVC_TYPE_INTF_REFCLK_EN	0x15
 
 /*
  * SVC version request/response has the same payload as
@@ -970,6 +971,18 @@ struct gb_svc_intf_pwren_request {
 
 struct gb_svc_intf_pwren_response {
 	__le16  result_code;
+} __packed;
+
+#define GB_SVC_INTF_REFCLK_DISABLE	0x00
+#define GB_SVC_INTF_REFCLK_ENABLE	0x01
+
+struct gb_svc_intf_refclk_en_request {
+	__u8 intf_id;
+	__u8 enable;
+} __packed;
+
+struct gb_svc_intf_refclk_en_response {
+	__le16 result_code;
 } __packed;
 
 /* RAW */
