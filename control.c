@@ -277,3 +277,22 @@ int gb_control_timesync_authoritative(struct gb_control *control,
 				 &request, sizeof(request),
 				 NULL, 0);
 }
+
+int gb_control_interface_power_state_set(struct gb_interface *intf, u8 pwr_state)
+{
+
+	struct gb_connection *connection = intf->control->connection;
+	struct gb_control_intf_pwr_state_set_request request;
+	struct gb_control_intf_pwr_state_set_response response;
+	int ret;
+
+	request.pwr_state = pwr_state;
+	ret = gb_operation_sync(connection, GB_CONTROL_TYPE_INTF_PWR_STATE_SET,
+				&request, sizeof(request),
+				&response, sizeof(response));
+
+	if (ret)
+		return ret;
+
+	return le16_to_cpu(response.result);
+}

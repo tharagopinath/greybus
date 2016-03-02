@@ -36,5 +36,6 @@ int gb_control_timesync_enable(struct gb_control *control, u8 count,
 int gb_control_timesync_disable(struct gb_control *control);
 int gb_control_timesync_authoritative(struct gb_control *control,
 				      u64 *frame_time, u8 count);
+int gb_control_interface_power_state_set(struct gb_interface *intf, u8 pwr_state);
 
 #endif /* __CONTROL_H */
