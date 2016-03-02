@@ -806,6 +806,7 @@ struct gb_spi_transfer_response {
 #define GB_SVC_TYPE_INTF_EJECT			0x11
 #define GB_SVC_TYPE_KEY_EVENT			0x12
 #define GB_SVC_TYPE_PING			0x13
+#define GB_SVC_TYPE_INTF_PWR_STATE_SET		0x18
 
 /*
  * SVC version request/response has the same payload as
@@ -975,6 +976,20 @@ struct gb_svc_key_event_request {
 	__u8    key_event;
 #define GB_SVC_KEY_RELEASED    0x00
 #define GB_SVC_KEY_PRESSED     0x01
+} __packed;
+
+#define GB_SVC_INTF_PWR_DISABLE		0x00
+#define GB_SVC_INTF_PWR_ENABLE		0x01
+
+/* SVC protocol interface power state set request */
+struct gb_svc_intf_pwr_state_set_request {
+	__u8	intf_id;
+	__u8	enable;
+} __packed;
+
+/*SVC protocol interface power state set response */
+struct gb_svc_intf_pwr_state_set_response {
+	__le16  result;
 } __packed;
 
 /* RAW */
