@@ -15,6 +15,10 @@
 
 #define GB_CONNECTION_FLAG_CSD		BIT(0)
 
+#define CONNECTION_PWR_OFF	0x00
+#define CONNECTION_PWR_SUSPEND	0x01
+#define CONNECTION_PWR_ON	0x02
+
 enum gb_connection_state {
 	GB_CONNECTION_STATE_INVALID	= 0,
 	GB_CONNECTION_STATE_DISABLED	= 1,
@@ -55,6 +59,10 @@ struct gb_connection {
 	atomic_t			op_cycle;
 
 	void				*private;
+
+	u8				pwr_state;
+
+	int				(*suspend) (struct gb_connection *connection);
 };
 
 struct gb_connection *gb_connection_create_static(struct gb_host_device *hd,

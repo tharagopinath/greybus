@@ -213,6 +213,8 @@ _gb_connection_create(struct gb_host_device *hd, int hd_cport_id,
 
 	mutex_unlock(&gb_connection_mutex);
 
+	connection->pwr_state = CONNECTION_PWR_ON;
+
 	return connection;
 
 err_free_connection:
