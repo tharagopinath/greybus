@@ -8,6 +8,7 @@
  */
 
 #include "greybus.h"
+#include <linux/pm_runtime.h>
 
 static ssize_t bundle_class_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
@@ -254,8 +255,24 @@ static int gb_bundle_suspend(struct device *dev)
 	return gb_bundle_pm_power_off(bundle);
 }
 
+static int gb_bundle_runtime_idle(struct device *dev)
+{
+	struct gb_bundle *bundle = to_gb_bundle(dev);
+
+	return gb_bundle_pm_power_suspend(bundle);
+}
+
+static int gb_bundle_runtime_resume(struct device *dev)
+{
+	struct gb_bundle *bundle = to_gb_bundle(dev);
+
+	return gb_bundle_pm_power_on(bundle);
+}
+
 static const struct dev_pm_ops bundle_pm_ops = {
 	.suspend = &gb_bundle_suspend,
+	.runtime_idle = gb_bundle_runtime_idle,
+	.runtime_resume = gb_bundle_runtime_resume,
 };
 
 struct device_type greybus_bundle_type = {
@@ -303,6 +320,9 @@ struct gb_bundle *gb_bundle_create(struct gb_interface *intf, u8 bundle_id,
 	list_add(&bundle->links, &intf->bundles);
 
 	bundle->pwr_state = BUNDLE_PWR_ON;
+
+	pm_runtime_set_active(&bundle->dev);
+	pm_runtime_enable(&bundle->dev);
 
 	return bundle;
 }
