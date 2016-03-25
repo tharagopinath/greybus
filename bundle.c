@@ -221,9 +221,47 @@ int gb_bundle_pm_power_off(struct gb_bundle *bundle)
 	return 0;
 }
 
+static int gb_bundle_suspend(struct device *dev)
+{
+	int ret;
+	struct gb_connection *connection;
+	struct gb_bundle *bundle = to_gb_bundle(dev);
+
+	/* Notify all the connections about the suspend */
+	list_for_each_entry(connection, &bundle->connections, bundle_links) {
+		if (connection->suspend) {
+			ret = connection->suspend(connection);
+
+			if (ret) {
+				dev_err(dev, "Error in bundle suspend \n");
+				return ret;
+			}
+		}
+	}
+
+	/* If bundle is in suspend state, power it on before powering
+	 * it off. This is essential when runtime pm comes into picture.
+	 */
+	if (bundle->pwr_state == BUNDLE_PWR_SUSPEND) {
+		ret = gb_bundle_pm_power_on(bundle);
+
+		if (ret) {
+			dev_err(dev, "Error in bundle suspend \n");
+			return ret;
+		}
+	}
+
+	return gb_bundle_pm_power_off(bundle);
+}
+
+static const struct dev_pm_ops bundle_pm_ops = {
+	.suspend = &gb_bundle_suspend,
+};
+
 struct device_type greybus_bundle_type = {
 	.name =		"greybus_bundle",
 	.release =	gb_bundle_release,
+	.pm =		&bundle_pm_ops,
 };
 
 /*
