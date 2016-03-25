@@ -39,6 +39,8 @@ struct gb_interface {
 	/* The interface needs to boot over unipro */
 	bool boot_over_unipro;
 	bool disconnected;
+
+	u8 pwr_state;
 };
 #define to_gb_interface(d) container_of(d, struct gb_interface, dev)
 
@@ -51,5 +53,8 @@ int gb_interface_enable(struct gb_interface *intf);
 void gb_interface_disable(struct gb_interface *intf);
 int gb_interface_add(struct gb_interface *intf);
 void gb_interface_remove(struct gb_interface *intf);
+int gb_interface_pm_power_on(struct gb_interface *interfcae);
+int gb_interface_pm_power_suspend(struct gb_interface *interface);
+int gb_interface_pm_power_off(struct gb_interface *interface);
 
 #endif /* __INTERFACE_H */

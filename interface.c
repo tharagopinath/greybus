@@ -39,6 +39,20 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR_RO(version);
 
+static ssize_t power_state_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct gb_interface *intf = to_gb_interface(dev);
+
+	if (intf->pwr_state == INTERFACE_PWR_OFF)
+		return scnprintf(buf, PAGE_SIZE, "%s\n", "OFF");
+	else if (intf->pwr_state == INTERFACE_PWR_SUSPEND)
+		return scnprintf(buf, PAGE_SIZE, "%s\n", "SUSPENDED");
+	else
+		return scnprintf(buf, PAGE_SIZE, "%s\n", "ON");
+}
+static DEVICE_ATTR_RO(power_state);
+
 static struct attribute *interface_attrs[] = {
 	&dev_attr_ddbl1_manufacturer_id.attr,
 	&dev_attr_ddbl1_product_id.attr,
@@ -49,6 +63,7 @@ static struct attribute *interface_attrs[] = {
 	&dev_attr_product_string.attr,
 	&dev_attr_serial_number.attr,
 	&dev_attr_version.attr,
+	&dev_attr_power_state.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(interface);
@@ -85,6 +100,160 @@ struct device_type greybus_interface_type = {
 	.name =		"greybus_interface",
 	.release =	gb_interface_release,
 };
+
+int gb_interface_pm_power_on(struct gb_interface *interface)
+{
+	int ret;
+
+	/* interface is already powered on. Return doing nothing */
+	if (interface->pwr_state == INTERFACE_PWR_ON)
+		return 0;
+
+	if (interface->pwr_state == INTERFACE_PWR_OFF) {
+		/* Todo. If interface is powered on from PWR_OFF state, send the
+		 * command to turn power on to the interface, turn ref clk on and
+		 * any other sequence to aid the cold boot of the interface
+	 	 */
+	}
+
+	else if (interface->pwr_state == INTERFACE_PWR_SUSPEND) {
+		/* Todo. If interface is powered on from PWR_SUSPEND state,
+		 * send the commands to send wake detect pulse to the
+		 * interface, turn on refclk, and re-establish the previous
+		 * connections
+		 */
+	}
+
+	ret = gb_control_interface_power_state_set(interface,
+							INTERFACE_PWR_ON);
+
+	if (ret) {
+		dev_err(&interface->dev, "Error trying to set INTF_PWR_ON \
+					power state\n");
+		return ret;
+	}
+
+	interface->pwr_state = INTERFACE_PWR_ON;
+	return 0;
+}
+
+int gb_interface_pm_power_suspend(struct gb_interface *interface)
+{
+	int ret = 0;
+	struct gb_bundle *bundle;
+	struct gb_svc *svc = interface->hd->svc;
+
+	/* Interface is already suspended. Return doing nothing */
+	if (interface->pwr_state == INTERFACE_PWR_SUSPEND)
+		return 0;
+
+	/* Interface cannot be transitioned from PWR_OFF state to PWR_SUSPEND
+	 * state. Return error.
+	 */
+	if (interface->pwr_state == INTERFACE_PWR_OFF) {
+		dev_err(&interface->dev, "Trying to suspend the interface \
+					when in off state \n");
+		return -1;
+	}
+
+	/* Interface cannot be transitioned to PWR_SUSPEND state, if any
+	 * bundle in the interface is in PWR_ON state. All bundles
+	 * must be in PWR_SUSPEND state or PWR_OFF state.
+	 */
+	list_for_each_entry(bundle, &interface->bundles, links) {
+		if (bundle->pwr_state == BUNDLE_PWR_ON)
+			return 0;
+	}
+
+	/* Todo. Disable/disconnect the existing CPort connections except
+	 * the control CPort as  PWR_SUSPEND state will lead to hibernate of
+	 * unipro link which in turn will cause these connections to diappear
+	 * in hardware
+	 */
+
+	ret = gb_control_interface_power_state_set(interface,
+							INTERFACE_PWR_SUSPEND);
+
+	if (ret) {
+		/* Todo. May want to re-enable the disconnected CPort
+		 * connections here as the suspend failed. Or may want to
+		 * reset the interface as it could be in an unpredictable
+		 * state
+		 */
+		dev_err(&interface->dev, "Error trying to set \
+					INTERFACE_PWR_SUSPEND power state\n");
+		return ret;
+	}
+
+	/* Todo. Disable the control CPort */
+
+	/* Turn off reference clock */
+	gb_svc_intf_refclk_state_set(svc, interface->interface_id, GB_SVC_INTF_REFCLK_DISABLE);
+
+	interface->pwr_state = INTERFACE_PWR_SUSPEND;
+	return 0;
+}
+
+int gb_interface_pm_power_off(struct gb_interface *interface)
+{
+	int ret = 0;
+	struct gb_bundle *bundle;
+	struct gb_svc *svc = interface->hd->svc;
+
+	/* Interface is already powered off. Return doing nothing */
+	if (interface->pwr_state == INTERFACE_PWR_OFF)
+		return 0;
+
+	/* Interface cannot be transitioned from PWR_SUSPEND state to PWR_OFF
+	 * state. Return error.
+	 */
+	if (interface->pwr_state == INTERFACE_PWR_SUSPEND) {
+		dev_err(&interface->dev, "Trying to power off the interface \
+					when in suspend state \n");
+		return -1;
+	}
+
+	/* Interface cannot be transitioned to PWR_OFF state, if any
+	 * bundle in the interface is in PWR_ON or PWR_SUSPEND state.
+	 * All bundles must be in PWR_OFF state.
+	 */
+	list_for_each_entry(bundle, &interface->bundles, links) {
+		if ((bundle->pwr_state == BUNDLE_PWR_ON) ||
+			(bundle->pwr_state == BUNDLE_PWR_SUSPEND))
+			return 0;
+	}
+
+	/* Todo. Disable/disconnect the existing CPort connections except
+	 * the control CPort as PWR_OFF state will lead to power down of
+	 * unipro link which in turn will cause these connections to diappear
+	 * in hardware.
+	 */
+
+	ret = gb_control_interface_power_state_set(interface,
+							INTERFACE_PWR_OFF);
+
+	if (ret) {
+		/* Todo. May want to re-enable the disconnected CPort
+		 * connections here as the power off failed. Or may want to
+		 * reset the interface as it could be in an unpredictable
+		 * state.
+		 */
+		dev_err(&interface->dev, "Error trying to set \
+					INTERFACE_PWR_OFF power state\n");
+		return ret;
+	}
+
+	/* Todo. Disable the control CPort */
+
+	/* Turn off reference clock */
+	gb_svc_intf_refclk_state_set(svc, interface->interface_id, GB_SVC_INTF_REFCLK_DISABLE);
+
+	/* Turn off the interface power */
+	gb_svc_intf_power_state_set(svc, interface->interface_id, GB_SVC_INTF_PWR_DISABLE);
+
+	interface->pwr_state = INTERFACE_PWR_OFF;
+	return 0;
+}
 
 /*
  * A Greybus module represents a user-replaceable component on an Ara
@@ -133,6 +302,8 @@ struct gb_interface *gb_interface_create(struct gb_host_device *hd,
 	}
 
 	list_add(&intf->links, &hd->interfaces);
+
+	intf->pwr_state = INTERFACE_PWR_ON;
 
 	return intf;
 }
