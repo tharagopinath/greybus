@@ -240,6 +240,15 @@ static int gb_i2c_device_setup(struct gb_i2c_device *gb_i2c_dev)
 	return gb_i2c_functionality_operation(gb_i2c_dev);
 }
 
+static int gb_i2c_suspend(struct gb_connection *connection)
+{
+	/* ToDo: Anything else related to powering off
+	 * this connection.
+	 */
+	connection->pwr_state = CONNECTION_PWR_OFF;
+	return 0;
+}
+
 static int gb_i2c_connection_init(struct gb_connection *connection)
 {
 	struct gb_i2c_device *gb_i2c_dev;
@@ -252,6 +261,7 @@ static int gb_i2c_connection_init(struct gb_connection *connection)
 
 	gb_i2c_dev->connection = connection;	/* refcount? */
 	gb_connection_set_data(connection, gb_i2c_dev);
+	connection->suspend = gb_i2c_suspend;
 
 	ret = gb_i2c_device_setup(gb_i2c_dev);
 	if (ret)
