@@ -109,6 +109,15 @@ int gb_bundle_pm_power_on(struct gb_bundle *bundle)
 	if (bundle->pwr_state == BUNDLE_PWR_ON)
 		return 0;
 
+	/* Interface should be powered on before powering on bundle */
+	ret = gb_interface_pm_power_on(bundle->intf);
+
+	if (ret) {
+		dev_err(&bundle->dev, "Error trying on power on the parent \
+					interface\n");
+		return ret;
+	}
+
 	ret = gb_control_bundle_power_state_set(bundle, BUNDLE_PWR_ON);
 
 	if (ret) {
@@ -156,6 +165,12 @@ int gb_bundle_pm_power_suspend(struct gb_bundle *bundle)
 	}
 
 	bundle->pwr_state = BUNDLE_PWR_SUSPEND;
+
+	/* Try to suspend bundle's interface. This may not succeed if
+	 * the Interface has other bundles that are still powered on.
+	 */
+	gb_interface_pm_power_suspend(bundle->intf);
+
 	return 0;
 }
 
@@ -196,6 +211,13 @@ int gb_bundle_pm_power_off(struct gb_bundle *bundle)
 	}
 
 	bundle->pwr_state = BUNDLE_PWR_OFF;
+
+	/* Try to power off bundle's interface. This may not succeed if
+	 * the Interface has other bundles that are still powered on or
+	 * suspended.
+	 */
+	gb_interface_pm_power_off(bundle->intf);
+
 	return 0;
 }
 
