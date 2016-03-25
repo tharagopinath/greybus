@@ -55,11 +55,25 @@ static ssize_t state_store(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR_RW(state);
 
+static ssize_t power_state_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct gb_bundle *bundle = to_gb_bundle(dev);
+
+	if (bundle->pwr_state == BUNDLE_PWR_OFF)
+		return scnprintf(buf, PAGE_SIZE, "%s\n", "OFF");
+	else if (bundle->pwr_state == BUNDLE_PWR_SUSPEND)
+		return scnprintf(buf, PAGE_SIZE, "%s\n", "SUSPENDED");
+	else
+		return scnprintf(buf, PAGE_SIZE, "%s\n", "ON");
+}
+static DEVICE_ATTR_RO(power_state);
 
 static struct attribute *bundle_attrs[] = {
 	&dev_attr_bundle_class.attr,
 	&dev_attr_bundle_id.attr,
 	&dev_attr_state.attr,
+	&dev_attr_power_state.attr,
 	NULL,
 };
 
@@ -85,6 +99,104 @@ static void gb_bundle_release(struct device *dev)
 	kfree(bundle->state);
 	kfree(bundle->cport_desc);
 	kfree(bundle);
+}
+
+int gb_bundle_pm_power_on(struct gb_bundle *bundle)
+{
+	int ret;
+
+	/*Bundle is already powered on. Return doing nothing */
+	if (bundle->pwr_state == BUNDLE_PWR_ON)
+		return 0;
+
+	ret = gb_control_bundle_power_state_set(bundle, BUNDLE_PWR_ON);
+
+	if (ret) {
+		dev_err(&bundle->dev, "Error trying to set BUNDLE_PWR_ON \
+					power state\n");
+		return ret;
+	}
+
+	bundle->pwr_state = BUNDLE_PWR_ON;
+	return 0;
+}
+
+int gb_bundle_pm_power_suspend(struct gb_bundle *bundle)
+{
+	int ret = 0;
+	struct gb_connection *connection;
+
+	/* Bundle is already suspended. Return doing nothing */
+	if (bundle->pwr_state == BUNDLE_PWR_SUSPEND)
+		return 0;
+
+	/* Bundle cannot be transitioned from PWR_OFF state to PWR_SUSPEND
+	 * state. Return error.
+	 */
+	if (bundle->pwr_state == BUNDLE_PWR_OFF) {
+		dev_err(&bundle->dev, "Trying to suspend the bundle when in \
+					off state \n");
+		return -1;
+	}
+
+	/* Bundle cannot be transitioned to PWR_SUSPEND state, if any
+	 * connection in the bundle is in PWR_ON state. All connections
+	 * must be in PWR_SUSPEND or PWR_OFF state.
+	 */
+	list_for_each_entry(connection, &bundle->connections, bundle_links) {
+		if (connection->pwr_state == CONNECTION_PWR_ON)
+			return 0;
+	}
+
+	ret = gb_control_bundle_power_state_set(bundle, BUNDLE_PWR_SUSPEND);
+	if (ret) {
+		dev_err(&bundle->dev, "Error trying to set BUNDLE_PWR_SUSPEND \
+					power state\n");
+		return ret;
+	}
+
+	bundle->pwr_state = BUNDLE_PWR_SUSPEND;
+	return 0;
+}
+
+int gb_bundle_pm_power_off(struct gb_bundle *bundle)
+{
+	int ret = 0;
+	struct gb_connection *connection;
+
+
+	/* Bundle is already powered off. Return doing nothing */
+	if (bundle->pwr_state == BUNDLE_PWR_OFF)
+		return 0;
+
+	/* Bundle cannot be transitioned from PWR_SUSPEND state to PWR_OFF
+	 * state. Return error
+	 */
+	if (bundle->pwr_state == BUNDLE_PWR_SUSPEND) {
+		dev_err(&bundle->dev, "Trying to power off the bundle when in \
+					suspend state \n");
+		return -1;
+	}
+
+	/* Bundle cannot be transitioned to PWR_OFF state, if any connection
+	 * in the bundle is in PWR_ON or PWR_SUSPEND state. All connections
+	 * must be in PWR_OFF state.
+	 */
+	list_for_each_entry(connection, &bundle->connections, bundle_links) {
+		if ((connection->pwr_state == CONNECTION_PWR_ON) ||
+			(connection->pwr_state == CONNECTION_PWR_SUSPEND))
+			return 0;
+	}
+
+	ret = gb_control_bundle_power_state_set(bundle, BUNDLE_PWR_OFF);
+	if (ret) {
+		dev_err(&bundle->dev, "Error trying to set BUNDLE_PWR_OFF \
+					power state\n");
+		return ret;
+	}
+
+	bundle->pwr_state = BUNDLE_PWR_OFF;
+	return 0;
 }
 
 struct device_type greybus_bundle_type = {
@@ -129,6 +241,8 @@ struct gb_bundle *gb_bundle_create(struct gb_interface *intf, u8 bundle_id,
 	dev_set_name(&bundle->dev, "%s.%d", dev_name(&intf->dev), bundle_id);
 
 	list_add(&bundle->links, &intf->bundles);
+
+	bundle->pwr_state = BUNDLE_PWR_ON;
 
 	return bundle;
 }
