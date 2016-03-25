@@ -11,6 +11,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/i2c.h>
+#include <linux/pm_runtime.h>
 
 #include "greybus.h"
 #include "gpbridge.h"
@@ -170,6 +171,9 @@ static int gb_i2c_transfer_operation(struct gb_i2c_device *gb_i2c_dev,
 	struct gb_operation *operation;
 	int ret;
 
+	connection->pwr_state = CONNECTION_PWR_ON;
+	pm_runtime_get_sync(&connection->bundle->dev);
+
 	operation = gb_i2c_operation_create(connection, msgs, msg_count);
 	if (!operation)
 		return -ENOMEM;
@@ -186,6 +190,9 @@ static int gb_i2c_transfer_operation(struct gb_i2c_device *gb_i2c_dev,
 	}
 
 	gb_operation_put(operation);
+
+	connection->pwr_state = CONNECTION_PWR_SUSPEND;
+	pm_runtime_put_sync(&connection->bundle->dev);
 
 	return ret;
 }
@@ -281,6 +288,9 @@ static int gb_i2c_connection_init(struct gb_connection *connection)
 	ret = i2c_add_adapter(adapter);
 	if (ret)
 		goto out_err;
+
+	connection->pwr_state = CONNECTION_PWR_SUSPEND;
+	pm_runtime_put_sync(&connection->bundle->dev);
 
 	return 0;
 out_err:
